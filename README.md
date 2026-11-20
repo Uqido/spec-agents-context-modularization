@@ -24,7 +24,7 @@ This specification defines a common structure for the context artifacts of a rep
 - Apply information hiding across repositories: a repository makes sense on its own, as if no other repository and its context existed, while
   still consulting the context of related repositories to better understand the outcome its own responsibility serves
 - Load only the context a task needs, keeping token cost and context window usage proportional to the outcome/domain rather than to the repository
-- Detect broken references, unindexed artifacts or undeclared modules automatically, before an agent acts on a stale or incomplete context
+- Detect broken references, unindexed artifacts automatically, before an agent acts on a stale or incomplete context
 - Allow both humans and AI systems to know exactly which context an agent could rely on at any given commit
 - Enable the definition of the project artifacts agents need, in a known place and shape; how effective they are depends on their content,
   which is the adopting project's responsibility. For example, artifacts that:
@@ -54,8 +54,12 @@ Rules are identified by a code (e.g. `M4`) so that reviews, human or AI, can cit
 - **Index**: a context artifact listing the context artifacts of one directory level; the entrypoint is the root index, `core.md` files are
   all the others.
 - **Module**: a unit of the codebase with a single responsibility; its context artifacts follow the same boundaries as its code.
-- **Technique**: a concrete notation used to write down the content of a module. This spec names a default technique for some modules; an
-  adopter may replace it, as long as the module's rule is still satisfied.
+- **Concern**: a kind of knowledge the context covers (see [Context Concerns](#context-concerns)), implemented by one or more modules.
+  A concern applies only where it is meaningful for the repository's responsibility: e.g. a project overview or architecture principles
+  apply to a repository representing a system (such as the one holding the product's infrastructure as code), not to the repository of one
+  of its services.
+- **Technique**: a concrete notation used to implement a concern. This spec suggests a default technique for some concerns; an adopter may
+  replace it, as long as the concern's rule is still satisfied.
 
 ### Repository Responsibility
 
@@ -67,20 +71,17 @@ Rules are identified by a code (e.g. `M4`) so that reviews, human or AI, can cit
 
 - **E1**: `AGENTS.md` at the repository root **shall** be the single entrypoint and the root index of the context artifacts.
 - **E2**: every context artifact **shall** be reachable from the entrypoint through a chain of `[[name]]` references (see M4).
-- **E3**: the entrypoint **shall** contain a modules table mapping each module of [Context Modules](#context-modules) to the `[[name]]` of the
-  context artifact covering it, or to `absent` for a recommended module the adopter does not cover. Project overview (C1) is covered by the
-  entrypoint itself.
-- **E4**: vendor-specific instruction files (e.g. `CLAUDE.md`, `.github/copilot-instructions.md`, `.cursor/rules/`) **shall** not hold
+- **E3**: vendor-specific instruction files (e.g. `CLAUDE.md`, `.github/copilot-instructions.md`, `.cursor/rules/`) **shall** not hold
   context; when an agent does not read the entrypoint natively, its vendor-specific file **shall** contain only a reference to the
   entrypoint (e.g. `@AGENTS.md`).
-- **E5**: context artifacts **shall** be composable through `[[name]]` and indexes alone. Vendor-specific mechanisms (e.g. import directives,
+- **E4**: context artifacts **shall** be composable through `[[name]]` and indexes alone. Vendor-specific mechanisms (e.g. import directives,
   path-scoped rules, vendor frontmatter fields) **should** only be added on top, so that removing them leaves the context unchanged.
 
 ### Language
 
 - **L1**: context artifacts **shall** be written in English.
 - **L2**: domain terms may be localized when that is the language the team, users or stakeholders actually use (e.g. a user persona whose
-  domain name is in the local language); each localized term **shall** have an entry in the domain language module (C2).
+  domain name is in the local language); each localized term **shall** have an entry in the domain language concern (C2).
 
 ### Modularization
 
@@ -106,10 +107,8 @@ Rules are identified by a code (e.g. `M4`) so that reviews, human or AI, can cit
   artifact for everything else; what it does not mention holds unchanged.
 - **M8**: context modularization **will** follow the same responsibilities as the code, according to the open-closed and the minimal
   responsibility principles. A boundary that does not produce desirable friction, in the reverse Conway sense, is a failed split: the
-  modules **will** be merged back.
-- **M9**: the context artifacts of a module **will** live inside that module, next to its code (e.g. the glossary of a bounded context lives in
-  the module implementing it); conversely, code operationalizing context artifacts (e.g. assembling prompts by resolving `[[name]]`)
-  **should** live next to the artifacts it operationalizes.
+  modules **will** be merged back. Where context artifacts live, alongside the code they concern or apart from it, is a design choice left
+  to the adopter.
 
 ### Authoring
 
@@ -119,32 +118,50 @@ Rules are identified by a code (e.g. `M4`) so that reviews, human or AI, can cit
   signatures, behavior already specified by a test).
 - **W3**: a technique **should** cite its source and state what it does not cover.
 
-### Context Modules
+### Context Concerns
 
-Modules C1–C4 are mandatory. Modules C5–C7 are recommended: an adopter not covering one **shall** declare it `absent` in the entrypoint's
-modules table (E3), instead of omitting it.
+Each concern below applies only where it is meaningful for the repository's responsibility (see [Definitions](#definitions)); where it
+applies, its rule holds as stated.
 
 - **C1 Project overview** **shall** state the project's purpose, main modules, stack, external dependencies and constraints.
+
+  *Applies to*: a repository representing the project as a system of services, hence typically the one holding its infrastructure as code.
 - **C2 Domain language** **shall** define the terms that cannot be derived from the code: the language found in user stories, in stakeholder
   conversations and among the team. Each term has a single meaning within the repository; the default technique is a glossary of
   term/definition entries, i.e. the ubiquitous language of Domain-Driven Design (Eric Evans, *Domain-Driven Design*, 2003).
+
+  *Applies to*: any repository whose code embodies domain concepts, a service as well as a system; rarely to purely technical ones (e.g.
+  generic libraries or tooling).
 - **C3 Conventions and workflow** **shall** state how work flows from an issue to a merged change: branch naming, commit conventions,
   pull request process and Definition of Done, plus any project-wide coding convention not enforced by tooling.
+
+  *Applies to*: any repository where changes are delivered through a team workflow.
 - **C4 Platform tools** **shall** list the self-service tools an agent can use to validate hypotheses, produce evidence or create artifacts,
   including build, test and lint whenever the project has them. Each tool **shall** state:
   - purpose: the question it answers or the artifact it produces;
   - invocation: the exact command or entry point;
   - preconditions: what must hold before running it (environment, credentials, services);
   - evidence: what output counts as a result and how to read it.
+
+  *Applies to*: any repository whose code can be built, tested, run or inspected by an agent.
 - **C5 Perimeter** **should** state the scope of the project in terms of who it serves and what change it is meant to produce. Default
   techniques:
   - personas, each with `domain_name`, `triggering_context`, `current_behavior`, `goal` and `value_chain_position`; `domain_name` is a
     domain language term (C2), not a narrative name;
   - impacts and outcomes in the Output/Outcome/Impact vocabulary (Josh Seiden, *Outcomes Over Outputs*, 2019);
   - acceptance criteria as Given/When/Then scenarios (Behaviour-Driven Development, Gherkin notation).
+
+  *Applies to*: a repository representing the project as a system of services; to a service repository only when it serves personas of its
+  own.
 - **C6 Principles** **should** list the adopted principles that bound every subsequent technical decision: a principle narrows the set of
   admissible alternatives, it never picks among them. A principle is revised only on evidence that contradicts it. The default technique is
   TOGAF's Principles Catalog: each principle has Name, Statement, Rationale and Implications, and is Understandable, Robust, Complete,
   Consistent and Stable.
+
+  *Applies to*: a repository representing the project as a system of services, where principles bound decisions across services; to a
+  service repository only for principles specific to it.
 - **C7 Bounded contexts** **should** extend C2 where the same term carries different meanings in different parts of the system, naming each
   bounded context and stating, as a context map, how terms translate across their boundaries.
+
+  *Applies to*: a repository spanning several bounded contexts, typically the one representing the system of services, whose context map
+  relates the services' languages.
