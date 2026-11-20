@@ -1,10 +1,6 @@
 # Spec: Agents Context Modularization v0.0.1
 
-This spec normalizes how a repository organizes its context artifacts: the markdown instructions and other files, traditionally not
-considered code, that together with code and tests give AI agents the context they need to work on it: domain knowledge, project perimeter
-and principles, team conventions and self-service platform tools.
-It does so in a way that is as agent-agnostic and as reproducible as possible, and consistent with the capabilities of the agents
-consuming it.
+A set of rules and conventions for standardizing the modularization of the context AI agents need to work on a repository.
 
 ## Dependencies
 
@@ -15,11 +11,11 @@ consuming it.
 This specification defines a common structure for the context artifacts of a repository, in order to:
 - Give agents a single, vendor-agnostic entrypoint to the repository context, so that, given a clear goal, they work autonomously: neither
   stuck on missing context nor taking decisions the context would have ruled out
-- Promote a single, minimal and complete responsibility per repository: a repository whose context cannot be stated as one such
-  responsibility does not qualify for adoption, so overlapping or fragmented responsibilities surface as soon as the context is written
 - Promote a single notion of context in which context artifacts are part of the codebase: they follow the repository's division of
   responsibilities and are modularized with the same principles as code, while code and tests, as living documentation, speak the same
   language as the context artifacts
+- Promote a single, minimal and complete responsibility per repository: a repository whose context cannot be stated as one such
+  responsibility does not qualify for adoption, so overlapping or fragmented responsibilities surface as soon as the context is written
 - Enable automated consumption of the context of other adopting repositories, by both humans and agents, through shared conventions, with
   no repository-specific integration
 - Apply information hiding across repositories: a repository makes sense on its own, as if no other repository and its context existed,
