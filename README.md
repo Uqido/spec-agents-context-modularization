@@ -144,6 +144,12 @@ Rules are identified by a code (e.g. `M4`) so that reviews, human or AI, can cit
   internal structure of the referenced repository.
 - **X4**: `depends_on` **shall** list only artifacts of the same repository: since its responsibility is complete (R1), a repository is
   understood without resolving its external references.
+- **X5**: repositories referenced by the context **should** be pinned to an immutable commit and made available locally, so that agents
+  read them once fetched, at exactly the commit the referring repository relies on; the `[[url]]` reference remains the identifier, the
+  local copy its resolution. The suggested technique is a platform tool (C4) of the repository's development environment, fetching each
+  referenced repository at its pinned commit into a local cache excluded from version control, with the pinned commits recorded in a
+  versioned file of the repository; submodules, vendoring or the stack's dependency manager are alternatives, where they fit the
+  repository's design.
 
 ### Authoring
 
