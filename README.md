@@ -146,6 +146,9 @@ Rules are identified by a code (e.g. `M4`) so that reviews, human or AI, can cit
   referenced repository at its pinned commit into a local cache excluded from version control, with the pinned commits recorded in a
   versioned file of the repository; submodules, vendoring or the stack's dependency manager are alternatives, where they fit the
   repository's design.
+- **X6**: when external context is cached by a dedicated tool (X5), the cache **shall** be the `.agents/` directory at the repository
+  root, excluded from version control; how a reference maps to its local copy is stated by the tool's own record in the platform tools
+  (C4).
 
 ### Authoring
 
