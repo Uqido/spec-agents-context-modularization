@@ -73,6 +73,12 @@ Rules are identified by a code (e.g. `M4`) so that reviews, human or AI, can cit
   rules rely on it. For example, and not exhaustively, changes recurrently requiring coordinated changes in another repository, or modules
   whose purpose cannot be traced back to the repository's responsibility, are signs that it does not hold.
 
+#### Examples
+
+- **R1**
+  - OK: `acme-billing` holds the billing service, its tests and its context; a change to invoicing rules touches this repository only.
+  - NOT OK: `acme-backend` holds billing, users and notifications, and most billing changes also require a change in `acme-notifications`.
+
 ### Entrypoint
 
 - **E1**: `AGENTS.md` at the repository root **shall** be the single entrypoint and the root index of the indexed context artifacts.
@@ -84,11 +90,35 @@ Rules are identified by a code (e.g. `M4`) so that reviews, human or AI, can cit
   directives, path-scoped rules, vendor frontmatter fields) **should** only be added on top, so that removing them leaves the context
   unchanged.
 
+#### Examples
+
+- **E1**
+  - OK: `AGENTS.md` at the root is the only entrypoint.
+  - NOT OK: both `AGENTS.md` and `docs/AI.md` act as entrypoints.
+- **E2**
+  - OK: `billing/rules.md` is listed in `billing/core.md`, which is listed in `AGENTS.md`.
+  - NOT OK: `billing/rules.md` has the M1 frontmatter, but no index references it.
+- **E3**
+  - OK: `CLAUDE.md` contains only `@AGENTS.md`.
+  - NOT OK: `.github/copilot-instructions.md` states branch naming conventions found in no context artifact.
+- **E4**
+  - OK: `billing/core.md` lists `[[billing/rules]]`; an `applyTo: "billing/**"` field is added for Copilot.
+  - NOT OK: the glossary is reachable only through a `@docs/glossary.md` import directive.
+
 ### Language
 
 - **L1**: context artifacts **shall** be written in English.
 - **L2**: domain terms may be localized when that is the language the team, users or stakeholders actually use (e.g. a user persona whose
   domain name is in the local language); each localized term **shall** have an entry in the domain language concern (C2).
+
+#### Examples
+
+- **L1**
+  - OK: the conventions are written in English.
+  - NOT OK: `conventions.md` is written in Italian.
+- **L2**
+  - OK: the persona `domain_name: Capocantiere` has a glossary entry.
+  - NOT OK: the same persona has no glossary entry.
 
 ### Modularization
 
@@ -122,6 +152,33 @@ Rules are identified by a code (e.g. `M4`) so that reviews, human or AI, can cit
   modules **will** be merged back. Where context artifacts live, alongside the code they concern or apart from it, is a design choice left
   to the adopter.
 
+#### Examples
+
+- **M1**
+  - OK: `billing/rules.md` opens with `name: billing/rules` and a one-line `description`.
+  - NOT OK: its frontmatter states `name: rules`, or has no `description`.
+- **M2**
+  - OK: `billing/refunds.md` declares `depends_on: [billing/rules]`, since it only states exceptions to them.
+  - NOT OK: every artifact declares `depends_on: [domain_language]` "for completeness".
+- **M3**
+  - OK: `billing/core.md` defines a `kind` field, with values `reference` or `procedure`, used by the artifacts below it.
+  - NOT OK: artifacts use an `owner` field defined in no index.
+- **M4**
+  - OK: "see [[billing/rules]]" and "see `src/billing/invoice.rb`".
+  - NOT OK: "see [rules](../billing/rules.md)" between indexed artifacts, or an unresolved `[[billing/rule]]`.
+- **M5**
+  - OK: `billing/core.md` lists `[[billing/rules]]` and `[[billing/refunds/core]]`, each with its description.
+  - NOT OK: `billing/` holds indexed artifacts but no `core.md`.
+- **M6**
+  - OK: `billing/core.md` states "load [[billing/rules]] first, then [[billing/refunds]]".
+  - NOT OK: it lists both without stating that refunds is a delta on rules.
+- **M7**
+  - OK: `billing/refunds.md` states "as [[billing/rules]], except that…".
+  - NOT OK: it copies the full rules and changes one paragraph.
+- **M8**
+  - OK: billing and auth each have their own context artifacts.
+  - NOT OK: the context is split into `part1.md` and `part2.md` by length, each mixing billing and auth.
+
 ### External References
 
 - **X1**: indexed context artifacts **shall** refer to other repositories only through `[[url]]` or `[[url#name]]`, where `url` points to a
@@ -150,6 +207,27 @@ Rules are identified by a code (e.g. `M4`) so that reviews, human or AI, can cit
   root, excluded from version control; how a reference maps to its local copy is stated by the tool's own record in the platform tools
   (C4).
 
+#### Examples
+
+- **X1**
+  - OK: `[[https://github.com/Uqido/acme-system/tree/v2.1.0]]`.
+  - NOT OK: `[[https://github.com/Uqido/acme-system/tree/main]]`, or a markdown link to the same URL.
+- **X2**
+  - OK: `…/tree/v2.1.0#conventions` resolves, since `conventions` exists at `v2.1.0`.
+  - NOT OK: at `v2.1.0` that artifact was still named `workflow`.
+- **X3**
+  - OK: `[[…/acme-system/tree/v2.1.0]]` to state which system the service belongs to.
+  - NOT OK: `[[…/acme-system/tree/v2.1.0#infra/queues]]` for the same purpose.
+- **X4**
+  - OK: `depends_on: [billing/rules]`.
+  - NOT OK: `depends_on: [https://github.com/Uqido/acme-system/tree/v2.1.0#domain_language]`.
+- **X5**
+  - OK: a versioned `context.lock` pins `acme-system` `v2.1.0` to its commit, and `bin/fetch_context` caches it locally.
+  - NOT OK: agents fetch `acme-system` from GitHub, by tag, at every session.
+- **X6**
+  - OK: the cache is `.agents/`, listed in `.gitignore`, and the tool's C4 record states where each reference lands.
+  - NOT OK: the cache is `tmp/context/`, or `.agents/` is committed.
+
 ### Authoring
 
 - **W1**: a context artifact **will** state only what is true now; the history of how its text evolved belongs to version control, not to
@@ -157,6 +235,18 @@ Rules are identified by a code (e.g. `M4`) so that reviews, human or AI, can cit
 - **W2**: context artifacts **will** not restate what an agent can cheaply derive from code, tests and other context artifacts (e.g.
   directory listings, function signatures, behavior already specified by a test, a fact already declared in another artifact).
 - **W3**: a technique **should** cite its source.
+
+#### Examples
+
+- **W1**
+  - OK: "Invoices are issued at month end."
+  - NOT OK: "Invoices used to be issued weekly; since March they are issued at month end."
+- **W2**
+  - OK: the glossary defines "Commessa".
+  - NOT OK: `billing/rules.md` lists the methods of `InvoiceService` with their signatures.
+- **W3**
+  - OK: "personas, as Jobs to Be Done (Christensen et al., *Competing Against Luck*, 2016)".
+  - NOT OK: "personas, JTBD-style", with no source.
 
 ### Context Concerns
 
@@ -207,3 +297,30 @@ Suggested techniques are informative: an adopter may replace them (see [Definiti
     Understandable, Robust, Complete, Consistent and Stable.
   - *Applies to*: a repository representing the project as a system of services, where principles bound decisions across services; to a
     service repository only for principles specific to it.
+
+#### Examples
+
+- **Coverage**
+  - OK: conventions are covered by a section of `AGENTS.md`.
+  - NOT OK: `acme-billing` has build and test commands, but the context covers no platform tools.
+- **Naming**
+  - OK: `platform_tools.md`, or `perimeter/` with `perimeter/core.md`.
+  - NOT OK: a dedicated `howto_run.md` for platform tools.
+- **C1**
+  - OK: `acme-system` states its purpose and its services, as repository references.
+  - NOT OK: it lists only its stack.
+- **C2**
+  - OK: "**Commessa**: a customer order, from signature to final invoice."
+  - NOT OK: "Invoice" means both the draft and the issued document.
+- **C3**
+  - OK: "branches are named `CU-<task id>-<slug>`; the Definition of Done is the checklist in `.github/pull_request_template.md`".
+  - NOT OK: "follow the usual git flow".
+- **C4**
+  - OK: `bin/test`, with purpose, invocation, preconditions (a running Postgres) and evidence (a JUnit report in `tmp/`).
+  - NOT OK: "run the tests".
+- **C5**
+  - OK: persona `Capocantiere`, with triggering context, current behavior and goal.
+  - NOT OK: "Sarah, a busy parent", with no further fields.
+- **C6**
+  - OK: "**Data residency**: customer data stays in the EU", with rationale and implications.
+  - NOT OK: "Use Kafka", which picks a solution instead of narrowing the alternatives.
